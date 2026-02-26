@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function JoinPage() {
   const { code } = useParams();
@@ -12,6 +12,12 @@ export default function JoinPage() {
 
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
+  const [origin, setOrigin] = useState(""); // ✅ for full link
+
+  // ✅ get full domain (localhost or vercel)
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   // optional: if you open /join/ABC123?host=1, go to host page
   useEffect(() => {
@@ -22,19 +28,18 @@ export default function JoinPage() {
     if (!name.trim()) return alert("Enter your name");
     setJoining(true);
 
-    // make a simple player id
     const playerId = String(Date.now());
 
-    // store player doc under /sessions/{code}/players/{playerId}
     await setDoc(doc(db, "sessions", code, "players", playerId), {
       name: name.trim(),
       score: 0,
       joinedAt: serverTimestamp(),
     });
 
-    // go to player page
     router.push(`/play/${code}?player=${playerId}`);
   }
+
+  const hostUrl = origin ? `${origin}/host/${code}` : `/host/${code}`;
 
   return (
     <div style={{ padding: 24 }}>
@@ -54,8 +59,13 @@ export default function JoinPage() {
 
       <hr style={{ margin: "20px 0" }} />
 
-      <p><b>Host link:</b></p>
-      <a href={`/host/${code}`}>{`/host/${code}`}</a>
+      {/* ✅ renamed + full clickable link */}
+      <p>
+        <b>Presenter Dashboard Link:</b>
+      </p>
+      <a href={`/host/${code}`} target="_blank" rel="noreferrer">
+        {hostUrl}
+      </a>
     </div>
   );
 }
