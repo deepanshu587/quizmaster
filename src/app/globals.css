@@ -83,3 +83,69 @@ body{
   font-weight: 700;
   cursor: pointer;
 }
+/* Top centered header */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 14px 12px;
+  background: rgba(243,244,246,.72);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.pageWrap{
+  min-height: 100vh;
+}
+
+/* 3D brand */
+.brand3d{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 35px rgba(15,23,42,.08);
+  transform-style: preserve-3d;
+  animation: floaty 4.5s ease-in-out infinite;
+}
+
+.brandDot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 0 6px rgba(118,188,33,.18);
+  transform: translateZ(18px);
+}
+
+.brandText{
+  font-weight: 900;
+  letter-spacing: .02em;
+  transform: translateZ(10px);
+}
+
+@keyframes floaty{
+  0%,100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+  50%     { transform: translateY(-4px) rotateX(6deg) rotateY(-6deg); }
+}
+
+/* 3D card hover effect */
+.card3d{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 16px 45px rgba(15,23,42,.08);
+  transform-style: preserve-3d;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.card3d:hover{
+  transform: perspective(900px) rotateX(6deg) rotateY(-6deg) translateY(-2px);
+  box-shadow: 0 22px 60px rgba(15,23,42,.12);
+}

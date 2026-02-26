@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
+import ConfettiBurst from "@/components/ConfettiBurst";
 import {
   doc,
   onSnapshot,
@@ -24,6 +25,8 @@ export default function PlayPage() {
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [confetti, setConfetti] = useState(false);
 
   const currentIndex = session?.currentQuestionIndex ?? 0;
 
@@ -88,8 +91,8 @@ export default function PlayPage() {
     if (!playerId) return alert("Missing player id in URL");
     if (!selected) return alert("Select an option first");
     if (locked) return;
-
     if (submitting) return;
+
     setSubmitting(true);
 
     try {
@@ -117,11 +120,14 @@ export default function PlayPage() {
         { merge: true }
       );
 
-      // ✅ Update score only if correct
-      // (score must exist or Firestore will create it)
+      // Update score only if correct
       if (isCorrect) {
         await updateDoc(pRef, { score: increment(1) });
       }
+
+      // ✅ Confetti on submit
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 900);
 
       setSubmitted(true);
     } catch (err) {
@@ -136,76 +142,84 @@ export default function PlayPage() {
   if (!session) return <div style={{ padding: 24 }}>Session not found.</div>;
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Quiz: {code}</h1>
-      <div>Status: {session.status}</div>
-      <div>⏱ Time left: {timeLeft}s</div>
-      <div>Current Question Index: {currentIndex}</div>
+    <main className="container">
+      <ConfettiBurst run={confetti} />
 
-      <hr style={{ margin: "16px 0" }} />
+      <div className="card3d">
+        <h1 className="title" style={{ fontSize: 28 }}>
+          Team Day Quiz
+        </h1>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Code: <b>{code}</b> • Status: <b>{session.status}</b>
+        </p>
 
-      {!question ? (
-        <div>No question found for this index.</div>
-      ) : (
-        <>
-          <h2>{question.text}</h2>
+        <div className="row" style={{ marginTop: 10 }}>
+          <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+            ⏱ <b>{timeLeft}s</b> left
+          </div>
+          <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+            Question: <b>{currentIndex + 1}</b>
+          </div>
+        </div>
 
-          <div style={{ display: "grid", gap: 10, maxWidth: 650 }}>
-            {options.map((o) => {
-              const isSel = selected === o.key;
+        <hr style={{ margin: "16px 0" }} />
 
-              return (
-                <button
-                  key={o.key}
-                  onClick={() => {
-                    if (!locked && !submitted) setSelected(o.key);
-                  }}
-                  disabled={locked || submitted}
-                  style={{
-                    textAlign: "left",
-                    padding: 14,
-                    fontSize: 16,
-                    border: isSel ? "3px solid black" : "1px solid #999",
-                    background: isSel ? "#eaeaea" : "white",
-                    cursor: locked || submitted ? "not-allowed" : "pointer",
-                    borderRadius: 6,
-                  }}
-                >
-                  <b>{o.key}:</b> {o.text}
+        {!question ? (
+          <div className="muted">No question found for this index.</div>
+        ) : (
+          <>
+            <h2 style={{ marginTop: 0 }}>{question.text}</h2>
+
+            <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
+              {options.map((o) => {
+                const isSel = selected === o.key;
+
+                return (
+                  <button
+                    key={o.key}
+                    onClick={() => {
+                      if (!locked && !submitted) setSelected(o.key);
+                    }}
+                    disabled={locked || submitted}
+                    style={{
+                      textAlign: "left",
+                      padding: 14,
+                      fontSize: 16,
+                      borderRadius: 12,
+                      border: isSel ? "3px solid #76bc21" : "1px solid #e5e7eb",
+                      background: isSel ? "rgba(118,188,33,.12)" : "white",
+                      cursor: locked || submitted ? "not-allowed" : "pointer",
+                      transition: "transform .12s ease",
+                    }}
+                  >
+                    <b>{o.key}:</b> {o.text}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              {!locked && !submitted && selected && (
+                <button className="btn" onClick={submit} disabled={submitting}>
+                  {submitting ? "Submitting..." : "Submit Answer"}
                 </button>
-              );
-            })}
-          </div>
+              )}
 
-          <div style={{ marginTop: 14 }}>
-            {!locked && !submitted && selected && (
-              <button
-                onClick={submit}
-                disabled={submitting}
-                style={{
-                  padding: "10px 16px",
-                  fontSize: 16,
-                  border: "2px solid black",
-                  background: "black",
-                  color: "white",
-                  cursor: submitting ? "not-allowed" : "pointer",
-                  opacity: submitting ? 0.7 : 1,
-                }}
-              >
-                {submitting ? "Submitting..." : "Submit Answer"}
-              </button>
-            )}
+              {submitted && (
+                <div style={{ marginTop: 10 }} className="muted">
+                  ✅ Submitted! Waiting for next question…
+                </div>
+              )}
 
-            {submitted && <div style={{ marginTop: 10 }}>✅ Submitted! Waiting for next question…</div>}
-
-            {locked && !submitted && (
-              <div style={{ marginTop: 10, color: "crimson" }}>
-                ⛔ Answer locked (timer ended or quiz not running).
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+              {locked && !submitted && (
+                <div style={{ marginTop: 10, color: "crimson" }}>
+                  ⛔ Answer locked (timer ended or quiz not running).
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
