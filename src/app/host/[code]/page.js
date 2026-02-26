@@ -25,24 +25,33 @@ export default function HostPage() {
 
   const currentIndex = session?.currentQuestionIndex ?? 0;
 
+  // Listen to session
   useEffect(() => {
     return onSnapshot(doc(db, "sessions", code), (snap) => {
       setSession(snap.exists() ? snap.data() : null);
     });
   }, [code]);
 
+  // ✅ SORTED LEADERBOARD (Highest score first)
   useEffect(() => {
     const qPlayers = query(
       collection(db, "sessions", code, "players"),
+      orderBy("score", "desc"),
       orderBy("joinedAt", "asc")
     );
+
     return onSnapshot(qPlayers, (snap) => {
       setPlayers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
   }, [code]);
 
+  // Listen answers for current question
   useEffect(() => {
-    const qAns = query(collection(db, "sessions", code, "answers"), orderBy("createdAt", "asc"));
+    const qAns = query(
+      collection(db, "sessions", code, "answers"),
+      orderBy("createdAt", "asc")
+    );
+
     return onSnapshot(qAns, (snap) => {
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setAnswers(all.filter((a) => a.questionIndex === currentIndex));
@@ -71,26 +80,24 @@ export default function HostPage() {
   }
 
   async function endQuiz() {
-    await updateDoc(doc(db, "sessions", code), { status: "ended" });
+    await updateDoc(doc(db, "sessions", code), {
+      status: "ended",
+    });
   }
 
-  // ✅ NEW: Reset game (delete players + answers + reset session)
   async function resetGame() {
-    if (!confirm("Reset game? This will remove ALL players & answers for this code.")) return;
+    if (!confirm("Reset game? This will remove ALL players & answers.")) return;
 
     setResetting(true);
 
-    // 1) delete answers in batches
     const ansSnap = await getDocs(collection(db, "sessions", code, "answers"));
-    while (!ansSnap.empty) break; // just safety
-
     let batch = writeBatch(db);
     let count = 0;
 
     for (const d of ansSnap.docs) {
       batch.delete(d.ref);
       count++;
-      if (count === 450) { // keep under limit
+      if (count === 450) {
         await batch.commit();
         batch = writeBatch(db);
         count = 0;
@@ -98,7 +105,6 @@ export default function HostPage() {
     }
     if (count > 0) await batch.commit();
 
-    // 2) delete players in batches
     const playersSnap = await getDocs(collection(db, "sessions", code, "players"));
     batch = writeBatch(db);
     count = 0;
@@ -114,7 +120,6 @@ export default function HostPage() {
     }
     if (count > 0) await batch.commit();
 
-    // 3) reset session fields
     await updateDoc(doc(db, "sessions", code), {
       status: "ended",
       currentQuestionIndex: 0,
@@ -122,16 +127,17 @@ export default function HostPage() {
     });
 
     setResetting(false);
-    alert("✅ Reset done. Refresh page.");
+    alert("✅ Reset complete.");
   }
 
   if (!session) return <div style={{ padding: 24 }}>No session found: {code}</div>;
 
   return (
     <div style={{ padding: 24 }}>
-      <h1>Host Dashboard: {code}</h1>
+      <h1>Team Day Quiz — Host</h1>
+      <div>Code: {code}</div>
       <div>Status: {session.status}</div>
-      <div>Question: {currentIndex}</div>
+      <div>Question: {currentIndex + 1}</div>
 
       <div style={{ marginTop: 12 }}>
         <button onClick={startQuiz} style={{ padding: 8, marginRight: 8 }}>
@@ -143,12 +149,14 @@ export default function HostPage() {
         <button onClick={endQuiz} style={{ padding: 8, marginRight: 8 }}>
           End Quiz
         </button>
-
-        {/* ✅ NEW reset button */}
         <button
           onClick={resetGame}
           disabled={resetting}
-          style={{ padding: 8, border: "2px solid crimson", color: "crimson" }}
+          style={{
+            padding: 8,
+            border: "2px solid crimson",
+            color: "crimson",
+          }}
         >
           {resetting ? "Resetting..." : "Reset Game"}
         </button>
@@ -156,18 +164,18 @@ export default function HostPage() {
 
       <hr style={{ margin: "16px 0" }} />
 
-      <h2>Players Joined ({players.length})</h2>
+      <h2>🏆 Leaderboard</h2>
       <ul>
-        {players.map((p) => (
+        {players.map((p, index) => (
           <li key={p.id}>
-            {p.name} — score: {p.score ?? 0}
+            {index + 1}. {p.name} — {p.score ?? 0} pts
           </li>
         ))}
       </ul>
 
       <hr style={{ margin: "16px 0" }} />
 
-      <h2>Live Answers (Question {currentIndex})</h2>
+      <h2>Live Answers (Question {currentIndex + 1})</h2>
       <div>
         A: {stats.A} | B: {stats.B} | C: {stats.C} | D: {stats.D}
       </div>
@@ -176,7 +184,8 @@ export default function HostPage() {
       <ul>
         {answers.map((a) => (
           <li key={a.id}>
-            {a.playerName || a.playerId} → {a.selected} {a.isCorrect ? "✅" : "❌"}
+            {a.playerName || a.playerId} → {a.selected}{" "}
+            {a.isCorrect ? "✅" : "❌"}
           </li>
         ))}
       </ul>
