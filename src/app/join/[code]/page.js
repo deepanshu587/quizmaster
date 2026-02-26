@@ -12,12 +12,6 @@ export default function JoinPage() {
 
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
-  const [origin, setOrigin] = useState(""); // ✅ for full link
-
-  // ✅ get full domain (localhost or vercel)
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
 
   // optional: if you open /join/ABC123?host=1, go to host page
   useEffect(() => {
@@ -39,8 +33,6 @@ export default function JoinPage() {
     router.push(`/play/${code}?player=${playerId}`);
   }
 
-  const hostUrl = origin ? `${origin}/host/${code}` : `/host/${code}`;
-
   return (
     <div style={{ padding: 24 }}>
       <h2>Join Quiz: {code}</h2>
@@ -52,20 +44,14 @@ export default function JoinPage() {
           placeholder="Your name"
           style={{ padding: 8, width: 260 }}
         />
-        <button onClick={join} disabled={joining} style={{ marginLeft: 8, padding: 8 }}>
+        <button
+          onClick={join}
+          disabled={joining}
+          style={{ marginLeft: 8, padding: 8 }}
+        >
           {joining ? "Joining..." : "Join"}
         </button>
       </div>
-
-      <hr style={{ margin: "20px 0" }} />
-
-      {/* ✅ renamed + full clickable link */}
-      <p>
-        <b>Presenter Dashboard Link:</b>
-      </p>
-      <a href={`/host/${code}`} target="_blank" rel="noreferrer">
-        {hostUrl}
-      </a>
     </div>
   );
 }
